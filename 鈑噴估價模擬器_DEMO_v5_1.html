@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>銘勁汽車 鈑噴估價模擬器 v4</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft JhengHei","微軟正黑體",sans-serif;background:#f0f2f5;color:#222;padding:16px;font-size:14px}
+.wrap{max-width:1040px;margin:0 auto}
+.head{background:#1F4E79;color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}
+.head h1{font-size:18px}.head .sub{font-size:12px;opacity:.85;margin-top:2px}
+.demo-tag{background:#ffc107;color:#5c4500;font-size:11px;padding:3px 8px;border-radius:4px;font-weight:bold}
+.stages{display:flex;background:#16385a;padding:0}
+.stage{flex:1;text-align:center;padding:11px 4px;color:#9bb8d4;cursor:pointer;font-size:13px;border-bottom:3px solid transparent;transition:.15s}
+.stage:hover{background:#1c4570;color:#fff}
+.stage.active{color:#fff;font-weight:bold;border-bottom-color:#ffc107;background:#1c4570}
+.stage .sn{font-size:11px;opacity:.7;display:block}
+.stage.locked{opacity:.55}
+.panel{background:#fff;padding:14px 18px;border-bottom:1px solid #e0e0e0}
+.panel-title{font-size:13px;font-weight:bold;color:#1F4E79;margin-bottom:10px;border-left:3px solid #2E75B6;padding-left:8px;display:flex;justify-content:space-between}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:11px;color:#666}
+.fld input{padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;width:130px}
+.btn-model,.btn-part{padding:7px 14px;border:1px solid #2E75B6;background:#fff;color:#2E75B6;border-radius:18px;cursor:pointer;font-size:13px}
+.btn-model:hover,.btn-part:hover{background:#e6f0fa}.btn-model.active{background:#2E75B6;color:#fff}
+.parts{display:flex;gap:8px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th{background:#2E75B6;color:#fff;padding:7px 6px;font-size:12px;text-align:center}
+td{padding:6px;border:1px solid #e8e8e8;text-align:center}
+td.name{text-align:left;padding-left:10px}
+tr.addon{background:#fffdf5}tr.rule{background:#fdeeea}tr.added{background:#eaf3fb}
+tr.cut td{color:#999}
+.tag{display:inline-block;color:#fff;font-size:10px;padding:1px 5px;border-radius:3px;margin-right:5px}
+.tag.r{background:#c0392b}.tag.a{background:#2E75B6}
+.del{color:#c00;cursor:pointer;font-weight:bold;padding:0 6px}
+.empty{text-align:center;color:#999;padding:24px}
+.kvinput{width:74px;padding:4px;border:1px solid #bbb;border-radius:4px;text-align:right;font-size:12px}
+.chkcol{width:34px}
+.totals{display:flex;justify-content:flex-end;gap:22px;padding:14px 18px;background:#f8f9fb;flex-wrap:wrap}
+.tot{text-align:right}.tot .lbl{font-size:11px;color:#666}.tot .val{font-size:18px;font-weight:bold;color:#1F4E79}
+.tot.grand .val{color:#c0392b;font-size:22px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:10px;padding:20px;max-width:440px;width:90%}
+.modal-box h3{color:#1F4E79;margin-bottom:14px}
+.proc-opt{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px;cursor:pointer}
+.proc-opt:hover{border-color:#2E75B6;background:#f0f7ff}
+.proc-opt .pname{font-weight:bold}.proc-opt .pamt{color:#c0392b;font-weight:bold}
+.proc-opt .pdetail{font-size:11px;color:#888;margin-top:2px}
+.modal-close{text-align:right;margin-top:6px}
+.modal-close button{padding:6px 16px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer}
+.suggest-wrap{padding:10px 18px}
+.rule-suggest{background:#fdeeea;border:1px solid #e0997b;border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.rule-suggest .st{font-size:12px;font-weight:bold;color:#992d1d;margin-bottom:6px}
+.addon-suggest{background:#fffdf5;border:1px solid #e0c068;border-radius:6px;padding:10px 12px}
+.addon-suggest .st{font-size:12px;font-weight:bold;color:#854f0b;margin-bottom:6px}
+.chip{display:inline-block;padding:5px 10px;margin:3px;border:1px solid #d0a040;background:#fff;border-radius:14px;font-size:12px;cursor:pointer}
+.chip:hover{background:#fdf6e3}.chip.hot{border-color:#e09020;background:#fef9ec}
+.chip.rule{border-color:#c0392b;background:#fdeeea;color:#992d1d;font-weight:bold}
+.note{font-size:11px;color:#888;padding:8px 18px}
+.actions{display:flex;justify-content:space-between;gap:10px;padding:14px 18px;flex-wrap:wrap}
+.actions .grp{display:flex;gap:10px}
+.actions button{padding:9px 18px;border-radius:6px;border:none;cursor:pointer;font-size:14px;font-weight:bold}
+.btn-print{background:#1F4E79;color:#fff}.btn-clear{background:#fff;border:1px solid #c00;color:#c00}
+.btn-next{background:#27ae60;color:#fff}.btn-lock{background:#c0392b;color:#fff}
+.btn-cut{background:#e67e22;color:#fff;font-size:12px;padding:7px 14px}
+.add-custom{padding:10px 18px;background:#f8f9fb;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.add-custom input{padding:5px 7px;border:1px solid #ccc;border-radius:4px;font-size:12px}
+.add-custom button{padding:6px 14px;background:#2E75B6;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px}
+.diff{padding:14px 18px;background:#fff7ed;border-top:2px solid #e67e22}
+.diff h4{color:#b9591a;font-size:14px;margin-bottom:10px}
+.diff table{font-size:13px}.diff td{text-align:right;padding:5px 10px;border:none}
+.diff td.k{text-align:left;color:#555}
+.diff .final td{font-weight:bold;font-size:15px;border-top:2px solid #e67e22;color:#1F4E79}
+.banner{padding:8px 18px;font-size:12px;text-align:center;color:#fff}
+.banner.v2{background:#2E75B6}.banner.v3{background:#e67e22}.banner.v4{background:#c0392b}
+.hide{display:none}
+/* print rules moved to bottom */
+
+/* ===== 正式估價單版面(頁首/頁尾/備註) ===== */
+.formal{display:none}
+.docfiles{padding:12px 18px;background:#fff;border-bottom:1px solid #e0e0e0}
+.docfiles .dt{font-size:12px;font-weight:bold;color:#1F4E79;margin-bottom:8px}
+.docfiles .grid{display:flex;flex-wrap:wrap;gap:4px 14px}
+.docfiles label{font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.headfields{padding:8px 18px;background:#fafbfc;border-bottom:1px solid #e0e0e0}
+.headfields .row{margin-bottom:6px}
+.headfields .fld input{width:120px}
+.remarks{padding:10px 18px;background:#fff;font-size:11px;color:#444;border-top:1px solid #e0e0e0;line-height:1.7}
+.remarks .rt{font-weight:bold;color:#1F4E79;margin-bottom:4px;font-size:12px}
+.signrow{display:flex;gap:30px;padding:14px 18px;border-top:1px solid #ccc}
+.signbox{flex:1;text-align:center;font-size:12px}
+.signbox .sl{color:#666;margin-bottom:30px}
+.signbox .ln{border-top:1px solid #333;padding-top:4px}
+
+/* 列印時：顯示正式版面,隱藏操作元件 */
+
+/* 正式列印頁首 */
+.print-head{display:none;border:1px solid #000;margin:0}
+
+
+
+
+
+
+
+
+.print-docfiles{display:none;border:1px solid #000;border-top:none;font-size:11px;padding:5px 8px}
+.print-remarks{display:none;border:1px solid #000;border-top:none;font-size:10.5px;padding:6px 8px;line-height:1.6}
+.print-sign{border:1px solid #000;border-top:none}
+
+.print-sign>div{flex:1;padding:8px;border-right:1px solid #000;text-align:center}
+.print-sign>div:last-child{border-right:none}
+
+/* ============ 統一列印規則 ============ */
+.print-head,.print-docfiles,.print-remarks,.print-sign{display:none}
+@media print{
+  @page{margin:10mm}
+  html,body{background:#fff!important;padding:0!important;margin:0!important}
+  /* 隱藏所有螢幕操作元件 */
+  .head,.stages,.banner,.headfields,.docfiles,.suggest-wrap,
+  .add-custom,.actions,.note,.diff,#cutBar,.demo-tag,
+  #custPanel,#editArea{display:none!important}
+  /* 明細表的刪除欄與核定欄隱藏 */
+  .del,.chkcol,.capCol,#thead th:last-child,#rows td:last-child{display:none!important}
+  .wrap{max-width:100%!important;margin:0!important}
+  .panel{border:none!important;padding:6px 0!important}
+  .panel-title{display:none!important}
+  .totals{justify-content:flex-end!important;border:1px solid #000;padding:8px!important}
+  /* 顯示正式估價單區塊 */
+  .print-head{display:block!important}
+  .print-docfiles{display:block!important}
+  .print-remarks{display:block!important}
+  .print-sign{display:flex!important;font-size:11px}
+  table{page-break-inside:auto}
+  tr{page-break-inside:avoid}
+}
+
+/* 新頁首樣式 */
+.ph-toprow{display:flex;justify-content:space-between;font-size:11px;padding:2px 2px 6px}
+.ph-titlerow{display:flex;align-items:baseline;justify-content:space-between;padding:0 2px 8px;border-bottom:none}
+.ph-company{font-size:13px;font-weight:bold}
+.ph-title{font-size:24px;font-weight:bold;letter-spacing:8px}
+.ph-date{font-size:12px}
+.ph-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:0}
+.ph-table td{border:1px solid #000;padding:4px 6px;height:24px}
+.ph-table .phk{background:#f0f0f0;font-weight:bold;text-align:center;white-space:nowrap}
+.ph-confirm{text-align:center;font-weight:bold;font-size:12px;padding:5px;border-left:1px solid #000;border-right:1px solid #000}
+.print-docfiles{font-size:11px;padding:6px 8px;border:1px solid #000;border-top:none;margin-bottom:0}
+.print-remarks{border:1px solid #000;border-top:none}
+.print-sign{border:1px solid #000;border-top:none}
+
+.mini{font-size:11px;padding:3px 8px;border:1px solid #2E75B6;background:#fff;color:#2E75B6;border-radius:4px;cursor:pointer;margin:1px}
+.mini:hover{background:#e6f0fa}.mini.del2{border-color:#c00;color:#c00}.mini.del2:hover{background:#fde}
+#storePanel{display:block}
+@media print{#storePanel{display:none!important}}
+</style><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body><div class="wrap">
+<div class="head"><div><h1>銘勁汽車 · 鈑噴估價模擬器</h1>
+<div class="sub">中壢服務廠 · 真實數據 · 完整正式估價單</div></div>
+<span class="demo-tag">DEMO v4</span></div>
+
+<div class="stages" id="stages"></div>
+<div class="banner hide" id="banner"></div>
+
+
+<div class="print-head" id="printHead">
+<div class="ph-toprow"><span>電話:(03)434-5550　傳真:(03)434-1900</span><span>地址:320桃園市中壢區中園路168-1號</span></div>
+<div class="ph-titlerow"><span class="ph-company">銘勁汽車(股)有限公司中壢服務廠</span><span class="ph-title">修護估價單</span><span class="ph-date">估價日期：<span id="ph_datetime"></span></span></div>
+<table class="ph-table">
+<tr><td class="phk" id="ph_pay" style="width:14%">□承修 □自費</td><td class="phk" style="width:10%">保險公司</td><td style="width:20%"><span id="ph_insurer"></span>（本/財）</td><td class="phk" style="width:10%">維修天數</td><td style="width:12%"><span id="ph_days"></span></td><td class="phk" style="width:8%">備註</td><td><span id="ph_remark"></span></td></tr>
+<tr><td class="phk">車主</td><td colspan="2"><span id="ph_owner"></span></td><td class="phk">車號</td><td><span id="ph_plate"></span></td><td class="phk">車型</td><td><span id="ph_model"></span></td></tr>
+<tr><td class="phk">電話</td><td colspan="2"><span id="ph_phone"></span></td><td class="phk">車色</td><td colspan="3"><span id="ph_color"></span></td></tr>
+</table>
+<div class="ph-confirm">本欄各項內容，請保險公司理賠人員務必在交車前確認清楚：</div>
+<table class="ph-table">
+<tr><td class="phk" style="width:14%">經辦(本)</td><td style="width:20%"><span id="ph_agent"></span></td><td class="phk" style="width:8%">電話</td><td style="width:24%"><span id="ph_agentph"></span></td><td class="phk" style="width:8%">案號</td><td><span id="ph_caseno"></span></td></tr>
+<tr><td class="phk">經辦(財)</td><td><span id="ph_agent2"></span></td><td class="phk">電話</td><td><span id="ph_agentph2"></span></td><td class="phk">案號</td><td><span id="ph_caseno2"></span></td></tr>
+</table>
+</div>
+
+
+<div class="panel" id="custPanel"><div class="panel-title">客戶基本資料</div>
+<div class="row">
+<div class="fld"><label>車主</label><input id="owner" placeholder="李鑐哲"></div>
+<div class="fld"><label>車號</label><input id="plate" placeholder="BKZ2117"></div>
+<div class="fld"><label>電話</label><input id="phone" placeholder="0910-639-581"></div>
+<div class="fld"><label>車色</label><input id="color" placeholder="黑"></div>
+<div class="fld"><label><input type="checkbox" id="ev"> 油電車</label></div>
+</div></div>
+
+
+<div class="headfields"><div class="panel-title">理賠/案件資訊（列印用）</div>
+<div class="row">
+<div class="fld"><label>付費別</label><div style="font-size:13px">
+<label style="display:inline"><input type="radio" name="paytype" value="ins" checked> 承修(保險)</label>
+<label style="display:inline;margin-left:10px"><input type="radio" name="paytype" value="self"> 自費</label></div></div>
+<div class="fld"><label>保險公司</label><input id="insurer" placeholder="國泰"></div>
+<div class="fld"><label>維修天數</label><input id="days" placeholder="*"></div>
+<div class="fld"><label>備註</label><input id="hremark" placeholder="車在廠內P1"></div>
+</div>
+<div class="row">
+<div class="fld"><label>估價日期時間</label><input id="datetime" style="width:180px"></div>
+</div>
+<div class="row">
+<div class="fld"><label>經辦(本)</label><input id="agent" placeholder="葉專員"></div>
+<div class="fld"><label>電話</label><input id="agentph" placeholder="02-7751..."></div>
+<div class="fld"><label>案號</label><input id="caseno" placeholder="1516YR..."></div>
+</div>
+<div class="row">
+<div class="fld"><label>經辦(財)</label><input id="agent2" placeholder=""></div>
+<div class="fld"><label>電話</label><input id="agentph2" placeholder=""></div>
+<div class="fld"><label>案號</label><input id="caseno2" placeholder=""></div>
+</div></div>
+
+<div class="docfiles"><div class="dt">理賠員確認備文件（勾選列印）</div><div class="grid" id="docGrid"></div></div>
+
+
+<div id="editArea">
+<div class="panel"><div class="panel-title">選擇車型</div><div class="row" id="models"></div></div>
+<div class="panel"><div class="panel-title">點選損傷部位（跳出處理方式）</div><div class="parts" id="parts"></div></div>
+</div>
+
+<div class="panel"><div class="panel-title">估價明細</div>
+<div id="cutBar" style="display:none;gap:10px;margin-bottom:6px">
+<button class="btn-cut" id="cutBtn" onclick="startCutMerge()">合併砍價</button>
+<div id="mergeBar" style="display:none;gap:6px;align-items:center">
+<span style="font-size:12px;color:#666">勾選多項後輸入合併核定價：</span>
+<input class="kvinput" id="mergeVal" type="number" placeholder="合併價">
+<button class="btn-cut" onclick="applyMerge()">套用合併</button></div></div>
+<table id="detail"><thead><tr id="thead">
+<th width="32">#</th><th>項目</th><th width="54">數量</th>
+<th width="74">零件單價</th><th width="74">拆裝工資</th><th width="74">塗裝工資</th>
+<th width="84">估價小計</th><th width="84" class="capCol">保險核定</th><th width="34"></th>
+</tr></thead><tbody id="rows"></tbody></table></div>
+
+
+<div class="panel" id="storePanel"><div class="panel-title">估價單暫存區
+<button onclick="toggleStoreList()" style="font-size:12px;padding:4px 12px;border:1px solid #2E75B6;background:#fff;color:#2E75B6;border-radius:5px;cursor:pointer">顯示/隱藏清單</button></div>
+<div id="storeList" style="display:none">
+<table style="margin-top:0"><thead><tr>
+<th width="120">車號</th><th width="100">車主</th><th width="60">車型</th>
+<th width="90">含稅金額</th><th width="80">狀態</th><th width="130">更新時間</th><th width="160">操作</th>
+</tr></thead><tbody id="storeRows"><tr><td colspan="7" class="empty">尚無暫存估價單</td></tr></tbody></table>
+</div></div>
+
+<div class="add-custom" id="addCustom">
+<span style="font-size:12px;color:#666">手動新增：</span>
+<input id="cName" placeholder="項目名稱" style="width:140px">
+<input id="cPrice" placeholder="零件" type="number" style="width:64px">
+<input id="cLabor" placeholder="拆裝" type="number" style="width:64px">
+<input id="cPaint" placeholder="塗裝" type="number" style="width:64px">
+<button onclick="addCustom()">＋加入</button></div>
+
+<div class="suggest-wrap">
+<div class="rule-suggest" id="ruleBox" style="display:none">
+<div class="st">⚠ 規則必估項（Q欄規定 · 易遺漏 · 點擊加入）</div><div id="ruleChips"></div></div>
+<div class="addon-suggest" id="addonBox" style="display:none">
+<div class="st">建議附帶項目（點擊加入）★=高頻</div><div id="addonChips"></div></div></div>
+
+<div class="totals">
+<div class="tot"><div class="lbl">零件合計</div><div class="val" id="tParts">0</div></div>
+<div class="tot"><div class="lbl">工資合計</div><div class="val" id="tLabor">0</div></div>
+<div class="tot"><div class="lbl">稅前總計</div><div class="val" id="tPre">0</div></div>
+<div class="tot"><div class="lbl">稅金 5%</div><div class="val" id="tTax">0</div></div>
+<div class="tot grand"><div class="lbl">含稅總計</div><div class="val" id="tGrand">0</div></div></div>
+
+<div class="diff" id="diff" style="display:none"></div>
+
+
+<div class="print-docfiles"><b>理賠員確認備文件：</b><span id="ph_docs"></span></div>
+<div class="print-remarks">
+<b>備註：</b><br>
+1、本估價單有效期間30天，如蒙惠顧請先付訂金 $________。<br>
+2、本估價單內未列項目，拆卸後如內部受損須修理，另外追價計費。<br>
+3、車輛在本廠修配期間，若也非人力所能抗拒之情事發生，本公司恕不負責。<br>
+4、本估價單係依照顧客要求進行估價，該車未在本廠修理請支付估價費用。<br>
+5、車上貴重物品請自行保管，本公司恕不負責保管責任。<br>
+6、零件價格如有異動，依實際維修日期為主。<br>
+7、維修後舊品如需保留回收，自維修完成通知取車保留三天。<br>
+8、同意貴公司可因修護上之需要在道路試車。如有意外以恢復原狀為主。
+</div>
+<div class="print-sign">
+<div>客戶入場確認<br><br><br>＿＿＿＿＿＿</div>
+<div>客戶完工確認<br><br><br>＿＿＿＿＿＿</div>
+<div>公司用印<br><br><br>＿＿＿＿＿＿</div>
+</div>
+
+
+<div class="note">※ 金額為5月估價單反推核定價中位值，僅供模擬。列印時會自動帶出完整估價單(頁首/文件清單/備註/簽核)，並隱藏操作元件與差異摘要。</div>
+
+<div class="actions">
+<div class="grp">
+<button class="btn-clear" onclick="clearAll()">清除重填</button>
+<button onclick="newEstimate()" style="background:#fff;border:1px solid #888;color:#444;padding:9px 18px;border-radius:6px;cursor:pointer;font-weight:bold">新估價單</button>
+</div>
+<div class="grp">
+<button class="btn-next" id="btnNext" onclick="nextStage()">下一階段 →</button>
+<button class="btn-lock" id="btnLock" onclick="lockCase()" style="display:none">🔒 結案鎖定</button>
+<button onclick="saveCurrent()" style="background:#27ae60;color:#fff;padding:9px 18px;border-radius:6px;border:none;cursor:pointer;font-weight:bold">💾 暫存</button>
+<button onclick="exportCurrent()" style="background:#1F6E43;color:#fff;padding:9px 18px;border-radius:6px;border:none;cursor:pointer;font-weight:bold">⬇ 另存Excel</button>
+<button class="btn-print" onclick="syncPrint();window.print()">列印估價單</button></div></div>
+</div>
+
+<div class="modal" id="modal"><div class="modal-box">
+<h3 id="modalTitle">選擇處理方式</h3><div id="procOpts"></div>
+<div class="modal-close"><button onclick="closeModal()">取消</button></div></div></div>
+
+<script>const DATA = {"main": {"右後門": {"ZS": {"換新": {"code": "10316504-SEPP", "price": 15138, "labor": 2880, "paint": 6109, "n": 5}, "鈑烤": {"code": "", "price": null, "labor": 1900, "paint": 5460, "n": 5}}, "MG4": {"換新": {"code": "10936228-spcp", "price": 21244, "labor": 2880, "paint": 6478, "n": 1}}, "G50": {"鈑烤": {"code": "", "price": null, "labor": 1812, "paint": 6596, "n": 2}}, "HS": {"鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5460, "n": 6}, "換新": {"code": "10005112-SPCP", "price": 16728, "labor": 2880, "paint": 6478, "n": 7}}}, "右後視鏡": {"HS": {"換新": {"code": "112209233-PBC", "price": 10790, "labor": 800, "paint": null, "n": 1}}, "ZS": {"換新": {"code": "11370240-sprp+10366613-sprp", "price": 8276, "labor": 855, "paint": 900, "n": 1}}}, "右前葉子板": {"HS": {"換新": {"code": "10367123-SEPP", "price": 6196, "labor": 1044, "paint": 5345, "n": 3}, "鈑烤": {"code": "", "price": null, "labor": 1044, "paint": 5345, "n": 1}}, "ZS": {"換新": {"code": "10292956-SEPP", "price": 4514, "labor": 1148, "paint": 5056, "n": 3}}}, "左後葉子板": {"ZS": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 3000, "n": 3}}, "HS": {"換新": {"code": "30131503CC-SEPP", "price": 13435, "labor": 5217, "paint": 6405, "n": 4}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": 6810, "n": 9}}}, "後保桿": {"ZS": {"烤漆": {"code": "", "price": null, "labor": 1357, "paint": 5583, "n": 2}, "換新": {"code": "10639343D-SPRP", "price": 8088, "labor": 2600, "paint": 5583, "n": 3}, "鈑烤": {"code": "10639343D-SPRP", "price": null, "labor": 1357, "paint": 5583, "n": 4}}, "HS": {"換新": {"code": "10922775D-SPRP", "price": 8568, "labor": 1357, "paint": 5952, "n": 14}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": null, "n": 4}, "烤漆": {"code": "", "price": null, "labor": 2500, "paint": 5952, "n": 3}}, "MG4": {"換新": {"code": "11340811-SPRP", "price": 10407, "labor": 2160, "paint": 5899, "n": 3}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": null, "n": 1}}}, "尾門": {"HS": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 6083, "n": 1}, "換新": {"code": "11049411-SPCP", "price": 14180, "labor": 3443, "paint": 6905, "n": 4}, "烤漆": {"code": "", "price": null, "labor": 1080, "paint": 6083, "n": 1}}, "ZS": {"換新": {"code": "10691021-SEPP", "price": 19006, "labor": 3443, "paint": 6531, "n": 1}}}, "前保桿": {"MG4": {"換新": {"code": "11340613-sprp", "price": 11223, "labor": 1983, "paint": 6109, "n": 1}}, "G50": {"換新": {"code": "c00334216", "price": 11000, "labor": 2160, "paint": 6715, "n": 1}}, "HS": {"換新": {"code": "10947207D-SPRP", "price": 9770, "labor": 1691, "paint": 6304, "n": 24}, "烤漆": {"code": "", "price": null, "labor": 1691, "paint": 6304, "n": 2}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": 6304, "n": 3}}, "ZS": {"換新": {"code": "10628329D-SPRP", "price": 7712, "labor": 1691, "paint": 5952, "n": 4}, "烤漆": {"code": "10628329D-SPRP", "price": null, "labor": null, "paint": 6128, "n": 2}}}, "左前門": {"ZS": {"烤漆": {"code": "", "price": null, "labor": 1080, "paint": 5161, "n": 1}, "鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 6109, "n": 1}}, "HS": {"鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5460, "n": 3}, "換新": {"code": "10005109-SPCP", "price": 18667, "labor": 2880, "paint": 6478, "n": 1}, "烤漆": {"code": "10364953-SEPP+10364955-SEPP", "price": null, "labor": 720, "paint": 2400, "n": 1}}}, "左後門": {"ZS": {"鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5161, "n": 1}}, "HS": {"鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5460, "n": 3}, "換新": {"code": "10005111-SPCP", "price": 16728, "labor": 2880, "paint": 6478, "n": 1}}}, "引擎蓋": {"G50": {"換新": {"code": "C00082555-4100", "price": 22408, "labor": 1152, "paint": 8216, "n": 1}}, "HS": {"換新": {"code": "10367101-SPCP", "price": 16660, "labor": 1044, "paint": 7320, "n": 7}, "烤漆": {"code": "10367099-SEPP(575+10367100-SEPP(575", "price": null, "labor": 600, "paint": 2400, "n": 1}, "鈑烤": {"code": "10367101-SPCP", "price": null, "labor": 1044, "paint": 7320, "n": 2}}, "ZS": {"換新": {"code": "10230176-SEPP", "price": 13690, "labor": 1200, "paint": 6505, "n": 1}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": null, "n": 1}}}, "右前門": {"ZS": {"換新": {"code": "10318336-sepp", "price": 16261, "labor": 2880, "paint": 6109, "n": 2}, "鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5161, "n": 2}, "烤漆": {"code": "10044792(570+10044791(570", "price": null, "labor": null, "paint": 900, "n": 1}}, "MG4": {"換新": {"code": "10936174-spcp", "price": 20202, "labor": 2880, "paint": 6478, "n": 1}}, "HS": {"換新": {"code": "10005110-SPCP", "price": 17790, "labor": 2880, "paint": 6478, "n": 1}, "鈑烤": {"code": "", "price": null, "labor": 1080, "paint": 5460, "n": 3}}}, "左前葉子板": {"HS": {"換新": {"code": "10367117-SEPP", "price": 6196, "labor": 1044, "paint": 5345, "n": 3}, "鈑烤": {"code": "", "price": null, "labor": null, "paint": 5345, "n": 1}, "烤漆": {"code": "", "price": null, "labor": 1044, "paint": 5345, "n": 1}}}, "右後葉子板": {"ZS": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 6109, "n": 5}, "烤漆": {"code": "", "price": null, "labor": null, "paint": 4800, "n": 3}}, "MG4": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 5793, "n": 1}}, "G50": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 7426, "n": 2}}, "HS": {"鈑烤": {"code": "", "price": null, "labor": null, "paint": 6810, "n": 5}, "烤漆": {"code": "", "price": null, "labor": null, "paint": 6810, "n": 2}}}, "左後視鏡": {"ZS": {"換新": {"code": "11370239-SPRP", "price": 7879, "labor": 827, "paint": 1200, "n": 2}, "烤漆": {"code": "10366612-SPRP", "price": null, "labor": null, "paint": 900, "n": 1}}}, "車頂": {"ZS": {"換新": {"code": "10976234+10976235", "price": 5141, "labor": 2200, "paint": null, "n": 1}}}}, "addon_bm": {"ZS": {"右後門": [{"name": "右後門下護板", "n": 10, "code": "10252397", "price": 1369, "labor": 555, "paint": null, "qty": 1, "hot": true}, {"name": "調漆工時", "n": 9, "code": "10229830+", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "右後門外水切", "n": 7, "code": "10229805", "price": 889, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門上飾條貼紙", "n": 5, "code": "10229821", "price": 157, "labor": 1255, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 5, "code": "10995904", "price": 251, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 4, "code": "", "price": 556, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "鈑金膠", "n": 4, "code": "10229804", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門防水膠條", "n": 3, "code": "10229797", "price": 1045, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 3, "code": "10252395", "price": 2059, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 3, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後保輪弧", "n": 3, "code": "10734147", "price": 393, "labor": 355, "paint": null, "qty": 2, "hot": false}, {"name": "右後視鏡方向燈", "n": 3, "code": "10366999", "price": 630, "labor": 800, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿尾燈拆裝", "n": 3, "code": "10995903", "price": null, "labor": 2100, "paint": null, "qty": 1, "hot": false}, {"name": "右前/後門把手維修蓋", "n": 2, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10229805", "price": 852, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈/油箱蓋拆裝", "n": 2, "code": "", "price": null, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "後保左右輪弧", "n": 2, "code": "10734147+10734127", "price": 411, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "右側側裙", "n": 2, "code": "10252401", "price": 2873, "labor": 457, "paint": null, "qty": 1, "hot": false}, {"name": "右後門防水膜", "n": 2, "code": "10995903", "price": 245, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "門縫膠", "n": 2, "code": "", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後保輪弧", "n": 2, "code": "10734147", "price": 402, "labor": 2700, "paint": null, "qty": 2, "hot": false}], "左後葉子板": [{"name": "後保桿雷達座", "n": 2, "code": "10639345~47-SPRP", "price": 250, "labor": null, "paint": 700, "qty": 3, "hot": false}, {"name": "後保桿下巴", "n": 2, "code": "10639342", "price": 5130, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 2, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}], "後保桿": [{"name": "調漆工時", "n": 9, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "後保桿雷達座", "n": 7, "code": "10639345~47-SPRP", "price": 262, "labor": null, "paint": 700, "qty": 3, "hot": false}, {"name": "後保桿下巴", "n": 5, "code": "10639342", "price": 5361, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "後保左右輪弧", "n": 5, "code": "10734147+10734127", "price": 411, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "尾燈拆裝", "n": 5, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "後保鑿孔作業", "n": 3, "code": "", "price": null, "labor": 630, "paint": null, "qty": 1, "hot": false}, {"name": "後霧燈拆裝", "n": 3, "code": "", "price": null, "labor": 455, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈/油箱蓋拆裝", "n": 3, "code": "", "price": null, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "四輪定位", "n": 2, "code": "", "price": null, "labor": 1500, "paint": null, "qty": 1, "hot": false}, {"name": "右後尾飾管", "n": 2, "code": "10562372", "price": 336, "labor": null, "paint": null, "qty": 1, "hot": false}], "左前門": [{"name": "左前門下護板", "n": 4, "code": "10252394", "price": 2059, "labor": 527, "paint": null, "qty": 1, "hot": false}, {"name": "左前門外水切", "n": 3, "code": "10229802", "price": 816, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "左前門把手維修蓋", "n": 3, "code": "", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後視鏡總成拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "左前門內防水膜", "n": 3, "code": "106504055", "price": 272, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 3, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}], "右前門": [{"name": "右前門外水切", "n": 5, "code": "10229803", "price": 816, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 4, "code": "10252395", "price": 2014, "labor": 552, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 4, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 3, "code": "10654056", "price": 272, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 3, "code": "10095456", "price": 30, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 3, "code": "", "price": 556, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "右前後視鏡外蓋", "n": 2, "code": "10366613-SPRP", "price": 397, "labor": 150, "paint": 1050, "qty": 1, "hot": false}, {"name": "右後門上飾條貼紙", "n": 2, "code": "10229821", "price": 157, "labor": 805, "paint": null, "qty": 1, "hot": false}, {"name": "右後門外水切", "n": 2, "code": "10229805", "price": 852, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門下護板", "n": 2, "code": "102523997", "price": 1369, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右側側裙", "n": 2, "code": "10252401", "price": 2811, "labor": 552, "paint": null, "qty": 1, "hot": false}], "右後葉子板": [{"name": "調漆工時", "n": 7, "code": "10229830+", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "後保左右輪弧", "n": 5, "code": "10734147+10734127", "price": 411, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "右後門下護板", "n": 5, "code": "10252397", "price": 1310, "labor": 527, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈/油箱蓋拆裝", "n": 4, "code": "", "price": null, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "鈑金膠", "n": 3, "code": "10229804", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後視鏡方向燈", "n": 3, "code": "10366999", "price": 630, "labor": 800, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿尾燈拆裝", "n": 3, "code": "10995903", "price": null, "labor": 2100, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿雷達座", "n": 2, "code": "10639345~47-SPRP", "price": 262, "labor": null, "paint": 900, "qty": 3, "hot": false}, {"name": "右後門上飾條貼紙", "n": 2, "code": "10229821", "price": 153, "labor": 1255, "paint": null, "qty": 1, "hot": false}, {"name": "右後門外水切", "n": 2, "code": "10229805", "price": 834, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後保輪弧", "n": 2, "code": "10734147", "price": 393, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後保輪弧", "n": 2, "code": "10734147", "price": 402, "labor": 2700, "paint": null, "qty": 2, "hot": false}], "前保桿": [{"name": "調漆工時", "n": 8, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "前牌照鉚釘", "n": 3, "code": "10137999", "price": 32, "labor": null, "paint": null, "qty": 4, "hot": false}, {"name": "前保桿下巴", "n": 3, "code": "10628331", "price": 5277, "labor": 577, "paint": null, "qty": 1, "hot": false}, {"name": "前保左右輪弧", "n": 2, "code": "10252367+10252368", "price": 617, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10229803", "price": 798, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 31, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 2, "code": "10654056", "price": 266, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "10252395", "price": 2014, "labor": 525, "paint": null, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 2, "code": "", "price": null, "labor": 677, "paint": null, "qty": 1, "hot": false}, {"name": "前保下巴", "n": 2, "code": "10628331", "price": 5277, "labor": 360, "paint": null, "qty": 1, "hot": false}, {"name": "前保桿下巴飾條", "n": 2, "code": "10628335", "price": 1800, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "雷達雷支架螺絲", "n": 2, "code": "10116429", "price": 58, "labor": null, "paint": null, "qty": 2, "hot": false}], "右前葉子板": [{"name": "調漆工時", "n": 3, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10229803", "price": 798, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 31, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 2, "code": "10654056", "price": 266, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "10252395", "price": 2014, "labor": 525, "paint": null, "qty": 1, "hot": false}, {"name": "前保下巴", "n": 2, "code": "10628331", "price": 5277, "labor": 360, "paint": null, "qty": 1, "hot": false}]}, "HS": {"前保桿": [{"name": "調漆工時", "n": 30, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "前保桿下巴", "n": 22, "code": "10947208", "price": 4921, "labor": 355, "paint": null, "qty": 1, "hot": true}, {"name": "頭燈拆裝", "n": 18, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": true}, {"name": "水箱護罩飾條", "n": 17, "code": "10947210", "price": 6384, "labor": 555, "paint": null, "qty": 1, "hot": true}, {"name": "水箱護罩總成", "n": 15, "code": "10821131", "price": 8078, "labor": 555, "paint": null, "qty": 1, "hot": true}, {"name": "前保桿下巴鉚釘", "n": 15, "code": "10756871", "price": 59, "labor": null, "paint": null, "qty": 5, "hot": true}, {"name": "前保桿下巴飾條", "n": 13, "code": "11022188", "price": 2466, "labor": 355, "paint": null, "qty": 1, "hot": true}, {"name": "前下通風網雷達外蓋", "n": 7, "code": "10928675", "price": 84, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前跟車雷達設定", "n": 7, "code": "", "price": null, "labor": 1200, "paint": null, "qty": 1, "hot": false}, {"name": "引擎蓋膠條", "n": 7, "code": "10367174+10426381+10426382", "price": 678, "labor": null, "paint": null, "qty": 3, "hot": false}, {"name": "引擎蓋隔熱棉塞子", "n": 7, "code": "91000573", "price": 21, "labor": null, "paint": null, "qty": 14, "hot": false}, {"name": "引擎蓋密封膠", "n": 7, "code": "", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "引擎下護板", "n": 7, "code": "30136829", "price": 3700, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "引擎蓋", "n": 7, "code": "10367101-SPCP", "price": 16240, "labor": 1044, "paint": 7320, "qty": 1, "hot": false}, {"name": "右前葉防濺蓋", "n": 6, "code": "30137674", "price": 167, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "胎壓偵測器", "n": 6, "code": "11205327", "price": 2062, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "前輪定位", "n": 6, "code": "", "price": null, "labor": 900, "paint": null, "qty": 1, "hot": false}, {"name": "水箱護罩總成拆裝", "n": 6, "code": "", "price": null, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "引擎蓋貼紙", "n": 6, "code": "CW788263+C788266", "price": 41, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "引擎蓋塞子", "n": 6, "code": "K7148511100*4+10074727*4", "price": 282, "labor": null, "paint": null, "qty": 8, "hot": false}, {"name": "左前頭燈", "n": 5, "code": "11434081", "price": 25097, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右前頭燈", "n": 5, "code": "11434082", "price": 25097, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "前跟車雷達", "n": 5, "code": "10923377", "price": 24016, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "前跟車雷達支架", "n": 5, "code": "10887843", "price": 157, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "引擎蓋防盜貼", "n": 5, "code": "", "price": 531, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前牌照框", "n": 4, "code": "CW792421", "price": 176, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前拖車勾蓋", "n": 4, "code": "10947212(167+10878236(74", "price": 241, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "右前方向燈飾板+雷達座", "n": 4, "code": "10947214+10947219", "price": 894, "labor": 455, "paint": null, "qty": 2, "hot": false}, {"name": "右前方向燈", "n": 4, "code": "11332259", "price": 8465, "labor": 405, "paint": null, "qty": 1, "hot": false}, {"name": "左前方向燈", "n": 4, "code": "11332258", "price": 8282, "labor": 502, "paint": null, "qty": 1, "hot": false}, {"name": "跟車雷達支架螺絲", "n": 4, "code": "10116429*3(285+90004727*3(123", "price": 408, "labor": null, "paint": null, "qty": 6, "hot": false}, {"name": "左前鋁圈", "n": 4, "code": "10949788", "price": 6970, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "左前葉防濺蓋", "n": 3, "code": "", "price": 167, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前下巴拆裝", "n": 3, "code": "", "price": null, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "前牌框", "n": 3, "code": "CW792421", "price": 176, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左前方向燈飾板", "n": 3, "code": "10947218", "price": 778, "labor": 455, "paint": null, "qty": 1, "hot": false}, {"name": "左前方向燈飾板雷達座", "n": 3, "code": "10947213", "price": 95, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左前方向燈飾板+雷達座", "n": 3, "code": "10947218+10947213", "price": 854, "labor": 455, "paint": null, "qty": 2, "hot": false}, {"name": "前牌框螺絲", "n": 3, "code": "BF247222", "price": 16, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "跟車雷達外蓋", "n": 3, "code": "10637661", "price": 147, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前保桿頭燈拆裝", "n": 2, "code": "", "price": null, "labor": 2500, "paint": null, "qty": 1, "hot": false}, {"name": "右前鋁圈", "n": 2, "code": "10949788或D", "price": 7675, "labor": 677, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 2, "code": "", "price": 556, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前環景鏡頭", "n": 2, "code": "10865528(4161或10961610(3668", "price": 3914, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前保桿內鐵支架", "n": 2, "code": "10861852", "price": 471, "labor": 600, "paint": null, "qty": 1, "hot": false}, {"name": "右前保桿側支架", "n": 2, "code": "10821214", "price": 220, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "後擋雨刷噴水管", "n": 2, "code": "", "price": 105, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "水箱護罩牌照鉚釘", "n": 2, "code": "10137999", "price": 30, "labor": null, "paint": null, "qty": 4, "hot": false}, {"name": "左前低音喇叭", "n": 2, "code": "10030168", "price": 560, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左前保桿側支架", "n": 2, "code": "10821213", "price": 210, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "引擎室內上飾板", "n": 2, "code": "10516364", "price": 370, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "上飾板冷媒貼紙", "n": 2, "code": "10566435", "price": 27, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "雨刷噴水桶+O環", "n": 2, "code": "10099130+10099427", "price": 463, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "左前水箱上支架", "n": 2, "code": "10305005-SEPP", "price": 1340, "labor": 300, "paint": 1800, "qty": 1, "hot": false}, {"name": "集風罩扣子", "n": 2, "code": "K7383509001-ASA+1605396", "price": 278, "labor": null, "paint": null, "qty": 8, "hot": false}, {"name": "前保下巴鉚釘", "n": 2, "code": "10756871", "price": 55, "labor": null, "paint": null, "qty": 5, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10978047", "price": 1923, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 2, "code": "30136777", "price": 324, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "11024096", "price": 2926, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門下護板", "n": 2, "code": "11024098", "price": 2341, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "左前駐車雷達", "n": 2, "code": "", "price": 1400, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前保下飾條", "n": 2, "code": "11022188", "price": 2466, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前保鉚釘", "n": 2, "code": "90003417*10(110+90003410*10(110+91000104*6(186+91000181*6(310", "price": 1074, "labor": null, "paint": null, "qty": 32, "hot": false}, {"name": "前acc雷達支架", "n": 2, "code": "10887843", "price": 157, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "前acc雷達支架螺絲", "n": 2, "code": "10116429*3(285+90004724*3(123", "price": 408, "labor": null, "paint": null, "qty": 5, "hot": false}, {"name": "前ACC雷達+設定", "n": 2, "code": "11477335或10921301", "price": 24016, "labor": 1200, "paint": null, "qty": 1, "hot": false}, {"name": "內鐵中支架", "n": 2, "code": "10861852", "price": 471, "labor": 600, "paint": null, "qty": 1, "hot": false}, {"name": "中冷器", "n": 2, "code": "10910678", "price": 10543, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "牌照鉚釘", "n": 2, "code": "10137999", "price": 32, "labor": null, "paint": null, "qty": 4, "hot": false}, {"name": "前保下巴飾條鉚釘", "n": 2, "code": "10756871", "price": 59, "labor": null, "paint": null, "qty": 5, "hot": false}, {"name": "拖車勾蓋", "n": 2, "code": "10878236+10947212", "price": 241, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "前保下巴飾條", "n": 2, "code": "", "price": 2360, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左前內規版", "n": 2, "code": "", "price": 1060, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "引擎下護板螺絲", "n": 2, "code": "", "price": 476, "labor": null, "paint": null, "qty": 16, "hot": false}, {"name": "左前內規鈑螺絲", "n": 2, "code": "", "price": 10, "labor": null, "paint": null, "qty": 10, "hot": false}, {"name": "左前輪胎", "n": 2, "code": "", "price": 5280, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後鋁圈", "n": 2, "code": "", "price": 6970, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "左後輪胎", "n": 2, "code": "", "price": 5280, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "四輪定位", "n": 2, "code": "", "price": null, "labor": 1400, "paint": null, "qty": 1, "hot": false}], "右前葉子板": [{"name": "右前葉防濺蓋", "n": 6, "code": "30137674", "price": 167, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 5, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "前輪定位", "n": 2, "code": "", "price": null, "labor": 875, "paint": null, "qty": 1, "hot": false}, {"name": "右前頭燈", "n": 2, "code": "11434082", "price": 25518, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10978047", "price": 1923, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 2, "code": "30136777", "price": 324, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "11024096", "price": 2926, "labor": null, "paint": null, "qty": 1, "hot": false}], "後保桿": [{"name": "調漆工時", "n": 31, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "尾燈拆裝", "n": 15, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": true}, {"name": "後保桿雷達座", "n": 14, "code": "10946208~211-SPRP", "price": 188, "labor": null, "paint": 800, "qty": 4, "hot": true}, {"name": "後保鑿孔作業", "n": 11, "code": "", "price": null, "labor": 630, "paint": null, "qty": 1, "hot": true}, {"name": "後保桿下巴", "n": 10, "code": "10922776", "price": 5330, "labor": 355, "paint": null, "qty": 1, "hot": true}, {"name": "右後門下護板", "n": 8, "code": "11024098", "price": 2393, "labor": 555, "paint": null, "qty": 1, "hot": true}, {"name": "後保鋼琴烤漆飾條", "n": 7, "code": "10922776", "price": 5570, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 7, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後保左右輪弧", "n": 6, "code": "10646893+10646894", "price": 451, "labor": 655, "paint": null, "qty": 2, "hot": false}, {"name": "後保桿鋼琴烤漆飾條", "n": 6, "code": "10876756", "price": 5705, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門外水切", "n": 6, "code": "10978067", "price": 1766, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "左後葉尾燈", "n": 5, "code": "10823343", "price": 5870, "labor": 705, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 5, "code": "30136782", "price": 283, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後門下護板", "n": 5, "code": "11024097", "price": 2393, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "後保雷達座", "n": 4, "code": "10946208~211-SPRP", "price": 188, "labor": null, "paint": 800, "qty": 4, "hot": false}, {"name": "左後門外水切", "n": 4, "code": "10978060", "price": 1776, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後門把手維修蓋", "n": 4, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後反光板", "n": 3, "code": "11313519", "price": 2200, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門內飾板", "n": 3, "code": "10649290-NBC", "price": 1970, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門防水膠條", "n": 3, "code": "10367173", "price": 860, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門牌照燈", "n": 3, "code": "10012107", "price": 300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後擋玻璃拆裝", "n": 3, "code": "", "price": null, "labor": 2880, "paint": null, "qty": 1, "hot": false}, {"name": "後擋玻璃PU膠", "n": 3, "code": "", "price": 2400, "labor": 2400, "paint": null, "qty": 1, "hot": false}, {"name": "左後門內防水膜", "n": 3, "code": "30136781", "price": 346, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後油箱蓋拆裝", "n": 3, "code": "", "price": null, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "右後門上飾條", "n": 3, "code": "10978027", "price": 1400, "labor": 1255, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 3, "code": "", "price": 556, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後保雷達固定座", "n": 2, "code": "10946208~210-SPRP", "price": 180, "labor": null, "paint": 1400, "qty": 4, "hot": false}, {"name": "後保鋼琴飾板", "n": 2, "code": "10876756", "price": 5582, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "左後反光片", "n": 2, "code": "11313519", "price": 2249, "labor": 720, "paint": null, "qty": 1, "hot": false}, {"name": "後雷達", "n": 2, "code": "要確認件號", "price": 1300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "拖車鈎蓋", "n": 2, "code": "10946192+10946191", "price": 262, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後尾門左右鋼琴飾板", "n": 2, "code": "10400551+10400552", "price": 440, "labor": 355, "paint": null, "qty": 2, "hot": false}, {"name": "左後保側支架", "n": 2, "code": "10821217", "price": 500, "labor": 225, "paint": null, "qty": 1, "hot": false}, {"name": "防鏽漆", "n": 2, "code": "", "price": null, "labor": null, "paint": 4000, "qty": 1, "hot": false}, {"name": "後牌照燈", "n": 2, "code": "10012107", "price": 300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後擋玻璃左右飾板", "n": 2, "code": "10400551+10400552", "price": 430, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "左後尾飾管", "n": 2, "code": "10878518", "price": 1790, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後拖車勾蓋", "n": 2, "code": "10946191+10946192", "price": 256, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "牌框鉚釘", "n": 2, "code": "10137999", "price": 32, "labor": null, "paint": null, "qty": 4, "hot": false}, {"name": "油箱蓋拆裝", "n": 2, "code": "", "price": null, "labor": 325, "paint": null, "qty": 1, "hot": false}, {"name": "後保輪弧", "n": 2, "code": "10646894+10646893", "price": 440, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "左後門上飾條(一次性", "n": 2, "code": "10978019", "price": 1135, "labor": 655, "paint": null, "qty": 1, "hot": false}, {"name": "左後門防水膠條", "n": 2, "code": "10367143", "price": 705, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門防水膠條", "n": 2, "code": "10367144", "price": 700, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "密封膠", "n": 2, "code": "", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 2, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "11024096", "price": 2863, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿尾燈拆裝", "n": 2, "code": "", "price": null, "labor": 2150, "paint": null, "qty": 1, "hot": false}, {"name": "左後鋁圈", "n": 2, "code": "10949788", "price": 6970, "labor": 552, "paint": null, "qty": 1, "hot": false}, {"name": "引擎下護板", "n": 2, "code": "30136829", "price": 2380, "labor": 355, "paint": null, "qty": 1, "hot": false}], "尾門": [{"name": "後保桿雷達座", "n": 5, "code": "10946208~211-SPRP", "price": 180, "labor": null, "paint": 800, "qty": 4, "hot": false}, {"name": "調漆工時", "n": 4, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門內飾板", "n": 3, "code": "10649290-NBC", "price": 1970, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門防水膠條", "n": 3, "code": "10367173", "price": 860, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門牌照燈", "n": 3, "code": "10012107", "price": 300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後擋玻璃拆裝", "n": 3, "code": "", "price": null, "labor": 2880, "paint": null, "qty": 1, "hot": false}, {"name": "後擋玻璃PU膠", "n": 3, "code": "", "price": 2400, "labor": 2400, "paint": null, "qty": 1, "hot": false}, {"name": "後保鋼琴烤漆飾條", "n": 3, "code": "10876756", "price": 5460, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "後雷達", "n": 2, "code": "要確認件號", "price": 1300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後保桿下巴", "n": 2, "code": "10922776", "price": 5330, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後尾門左右鋼琴飾板", "n": 2, "code": "10400551+10400552", "price": 440, "labor": 355, "paint": null, "qty": 2, "hot": false}, {"name": "左後保側支架", "n": 2, "code": "10821217", "price": 500, "labor": 225, "paint": null, "qty": 1, "hot": false}, {"name": "後牌照燈", "n": 2, "code": "10012107", "price": 300, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "後擋玻璃左右飾板", "n": 2, "code": "10400551+10400552", "price": 430, "labor": null, "paint": null, "qty": 2, "hot": false}, {"name": "左後葉尾燈", "n": 2, "code": "10823343", "price": 5870, "labor": 705, "paint": null, "qty": 1, "hot": false}, {"name": "左後反光板", "n": 2, "code": "11313519", "price": 2200, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "後保鑿孔作業", "n": 2, "code": "", "price": null, "labor": 630, "paint": null, "qty": 1, "hot": false}], "左前葉子板": [{"name": "調漆工時", "n": 5, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "左前葉防濺蓋", "n": 4, "code": "30137673", "price": 167, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "前輪定位", "n": 3, "code": "", "price": null, "labor": 900, "paint": null, "qty": 1, "hot": false}, {"name": "左前門下護板", "n": 2, "code": "11024095", "price": 2448, "labor": 527, "paint": null, "qty": 1, "hot": false}, {"name": "左前門外水切", "n": 2, "code": "10978037", "price": 1351, "labor": 360, "paint": null, "qty": 1, "hot": false}, {"name": "左前鋁圈", "n": 2, "code": "10949788", "price": 7675, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "胎壓偵測器", "n": 2, "code": "10718213", "price": 2062, "labor": 355, "paint": null, "qty": 1, "hot": false}], "左前門": [{"name": "左前門下護板", "n": 4, "code": "11024095", "price": 2926, "labor": 525, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 4, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "左前門外水切", "n": 4, "code": "10978037", "price": 1923, "labor": 360, "paint": null, "qty": 1, "hot": false}, {"name": "左後視鏡拆裝", "n": 2, "code": "", "price": null, "labor": 827, "paint": null, "qty": 1, "hot": false}, {"name": "左前門把手維修蓋", "n": 2, "code": "100954546", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}], "左後葉子板": [{"name": "調漆工時", "n": 8, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "左後門下護板", "n": 4, "code": "11024098", "price": 2341, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "左後葉尾燈", "n": 3, "code": "10823343", "price": 5870, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿雷達座", "n": 3, "code": "10946208~211-SPRP", "price": 180, "labor": null, "paint": 800, "qty": 4, "hot": false}, {"name": "左後門外水切", "n": 3, "code": "10978060", "price": 1766, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後油箱蓋拆裝", "n": 3, "code": "", "price": null, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "左後門把手維修蓋", "n": 3, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "防鏽漆", "n": 2, "code": "", "price": null, "labor": null, "paint": 4000, "qty": 1, "hot": false}, {"name": "後尾門內飾板", "n": 2, "code": "10649290-NBC", "price": 1970, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後保左右輪弧", "n": 2, "code": "", "price": 451, "labor": 600, "paint": null, "qty": 2, "hot": false}, {"name": "油箱蓋拆裝", "n": 2, "code": "", "price": null, "labor": 325, "paint": null, "qty": 1, "hot": false}, {"name": "左後門上飾條(一次性", "n": 2, "code": "10978019", "price": 1135, "labor": 655, "paint": null, "qty": 1, "hot": false}, {"name": "左後門內防水膜", "n": 2, "code": "30136781", "price": 338, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後門防水膠條", "n": 2, "code": "10367143", "price": 705, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿下巴", "n": 2, "code": "", "price": 5330, "labor": null, "paint": null, "qty": 1, "hot": false}], "右後門": [{"name": "調漆工時", "n": 11, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": true}, {"name": "右後門下護板", "n": 11, "code": "11024098", "price": 2393, "labor": 555, "paint": null, "qty": 1, "hot": true}, {"name": "右後門把手維修蓋", "n": 10, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": true}, {"name": "右後門外水切", "n": 9, "code": "10978067", "price": 1766, "labor": 327, "paint": null, "qty": 1, "hot": true}, {"name": "右後門內防水膜", "n": 8, "code": "30136782", "price": 283, "labor": null, "paint": null, "qty": 1, "hot": true}, {"name": "右後門上飾條", "n": 6, "code": "10978027", "price": 1400, "labor": 1255, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 6, "code": "", "price": 556, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門防水膠條", "n": 5, "code": "10367144", "price": 700, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "密封膠", "n": 5, "code": "", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 4, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 3, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 3, "code": "11024096", "price": 2800, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手", "n": 2, "code": "10650319-SPRP", "price": 346, "labor": 357, "paint": 1500, "qty": 1, "hot": false}, {"name": "右後門把手拆裝", "n": 2, "code": "", "price": null, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右前門外水切", "n": 2, "code": "10978047", "price": 1881, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 2, "code": "30136777", "price": 317, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 2, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "後保桿尾燈拆裝", "n": 2, "code": "", "price": null, "labor": 2150, "paint": null, "qty": 1, "hot": false}, {"name": "引擎下護板", "n": 2, "code": "30136829", "price": 2380, "labor": 355, "paint": null, "qty": 1, "hot": false}], "左後門": [{"name": "左後門下護板", "n": 5, "code": "11024097", "price": 2393, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 5, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "左後門外水切", "n": 4, "code": "10978060", "price": 1776, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後門把手維修蓋", "n": 4, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後門內防水膜", "n": 3, "code": "30136781", "price": 346, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 3, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "左後門上飾條(一次性", "n": 2, "code": "10978019", "price": 1135, "labor": 655, "paint": null, "qty": 1, "hot": false}, {"name": "左後門防水膠條", "n": 2, "code": "10367143", "price": 705, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "左後油箱蓋拆裝", "n": 2, "code": "", "price": null, "labor": 327, "paint": null, "qty": 1, "hot": false}], "右後葉子板": [{"name": "右後門下護板", "n": 7, "code": "11024098", "price": 2393, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 6, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 5, "code": "10095456", "price": 21, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門外水切", "n": 4, "code": "10978067", "price": 1766, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 4, "code": "30136782", "price": 283, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 4, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "右後門上飾條", "n": 2, "code": "10978027", "price": 1400, "labor": 1255, "paint": null, "qty": 1, "hot": false}, {"name": "右後門防水膠條", "n": 2, "code": "10367144", "price": 700, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "防盜貼紙", "n": 2, "code": "", "price": 556, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "密封膠", "n": 2, "code": "", "price": 2000, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "頭燈拆裝", "n": 2, "code": "", "price": null, "labor": 855, "paint": null, "qty": 1, "hot": false}, {"name": "右前門把手維修蓋", "n": 2, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 2, "code": "11024096", "price": 2863, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "引擎下護板", "n": 2, "code": "30136829", "price": 2380, "labor": 355, "paint": null, "qty": 1, "hot": false}], "右前門": [{"name": "右前門把手維修蓋", "n": 4, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前門下護板", "n": 4, "code": "11024096", "price": 2863, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "右前門外水切", "n": 3, "code": "10978047", "price": 1923, "labor": 327, "paint": null, "qty": 1, "hot": false}, {"name": "右前門內防水膜", "n": 3, "code": "30136777", "price": 324, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 3, "code": "10095456", "price": 20, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門下護板", "n": 3, "code": "11024098", "price": 2290, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 3, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}, {"name": "右後門外水切", "n": 2, "code": "10978067", "price": 1728, "labor": 300, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 2, "code": "30136782", "price": 276, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右前葉防濺蓋", "n": 2, "code": "30137674", "price": 167, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "尾燈拆裝", "n": 2, "code": "", "price": null, "labor": 827, "paint": null, "qty": 1, "hot": false}]}, "MG4": {"後保桿": [{"name": "調漆工時", "n": 2, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}]}, "G50": {"前保桿": [{"name": "前保內鐵", "n": 2, "code": "C00366521-4100", "price": 15087, "labor": 2400, "paint": 2100, "qty": 1, "hot": false}], "右後葉子板": [{"name": "右後門外水切", "n": 2, "code": "C00083078", "price": 1356, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 2, "code": "C00140364", "price": 92, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 2, "code": "C00083084", "price": 2406, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門下護板", "n": 2, "code": "C00282535", "price": 3212, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 2, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}], "右後門": [{"name": "右後門外水切", "n": 2, "code": "C00083078", "price": 1356, "labor": 355, "paint": null, "qty": 1, "hot": false}, {"name": "右後門把手維修蓋", "n": 2, "code": "C00140364", "price": 92, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門內防水膜", "n": 2, "code": "C00083084", "price": 2406, "labor": null, "paint": null, "qty": 1, "hot": false}, {"name": "右後門下護板", "n": 2, "code": "C00282535", "price": 3212, "labor": 555, "paint": null, "qty": 1, "hot": false}, {"name": "調漆工時", "n": 2, "code": "", "price": null, "labor": null, "paint": 1580, "qty": 1, "hot": false}]}}, "rate": 720, "rule_items": {"HS|前保桿|換新": [{"name": "前保桿釦子組×32(一次性)", "price": 1074, "labor": 0, "paint": 0, "qty": 1, "force": true}, {"name": "拆水箱架螺絲×4", "price": 84, "labor": 0, "paint": 0, "qty": 1, "force": false}], "HS|後保桿|換新": [{"name": "後保鉚釘組×30", "price": 1068, "labor": 0, "paint": 0, "qty": 1, "force": true}], "HS|尾門|換新": [{"name": "尾門螺釘×4", "price": 84, "labor": 0, "paint": 0, "qty": 1, "force": true}], "ZS|前保桿|換新": [{"name": "前保螺絲+後保牌框鉚釘", "price": 800, "labor": 0, "paint": 0, "qty": 1, "force": true}], "ZS|後保桿|換新": [{"name": "後保牌框鉚釘組×4", "price": 900, "labor": 0, "paint": 0, "qty": 1, "force": true}]}, "generic_rules": [{"cond": "換新", "name": "防盜貼紙", "price": 556, "note": "鈑金件換新一律估"}, {"cond": "門", "name": "把手蓋+外水切+防水膜(一次性)", "price": 1200, "note": "車門維修一律估"}, {"cond": "車頂", "name": "天窗橡皮(換新)", "price": 0, "note": "車頂鈑烤一律估,請填價"}, {"cond": "鈑烤", "name": "鈑金密封膠/結構膠", "price": 2000, "note": "鈑金件估"}]};
+let curModel=null, curPart=null, items=[], stage=1, locked=false;
+let cutMode=false, cutSel=[];
+const PROC_LABEL={'烤漆':'烤漆（刮傷）','鈑烤':'鈑金+烤漆（凹陷）','換新':'換新（破裂）'};
+const PART_ORDER=['前保桿','後保桿','引擎蓋','左前葉子板','右前葉子板','左後葉子板','右後葉子板','左前門','右前門','左後門','右後門','尾門','車頂','左後視鏡','右後視鏡'];
+const STAGE_NAME={1:'V1 初估',2:'V2 追加',3:'V3 保險核定',4:'V4 結案'};
+
+// 階段列
+function renderStages(){
+  const box=document.getElementById('stages');box.innerHTML='';
+  [[1,'初估','目視估價'],[2,'追加','拆裝後追加'],[3,'核定','保險砍價'],[4,'結案','鎖定最終']].forEach(([n,t,s])=>{
+    const d=document.createElement('div');d.className='stage'+(stage===n?' active':'')+(locked&&n<4?' locked':'');
+    d.innerHTML='V'+n+' '+t+'<span class="sn">'+s+'</span>';
+    d.onclick=()=>{if(locked&&n!==4){alert('已結案鎖定');return;}stage=n;refresh();};
+    box.appendChild(d);
+  });
+}
+// 車型
+function initModels(){
+  const mb=document.getElementById('models');mb.innerHTML='';
+  ['HS','ZS','MG4','G50'].forEach(m=>{
+    const b=document.createElement('button');b.className='btn-model'+(curModel===m?' active':'');b.textContent=m;
+    b.onclick=()=>{curModel=m;initModels();renderParts();};mb.appendChild(b);
+  });
+}
+function renderParts(){
+  const box=document.getElementById('parts');box.innerHTML='';
+  PART_ORDER.forEach(p=>{if(!DATA.main[p]||!DATA.main[p][curModel])return;
+    const b=document.createElement('button');b.className='btn-part';b.textContent=p;b.onclick=()=>openModal(p);box.appendChild(b);});
+  if(!box.children.length)box.innerHTML='<span style="color:#999">此車型暫無資料</span>';
+}
+function openModal(part){
+  if(!curModel){alert('請先選車型');return;}
+  curPart=part;const procs=DATA.main[part][curModel];
+  const ob=document.getElementById('procOpts');ob.innerHTML='';
+  document.getElementById('modalTitle').textContent=part+' — 選擇處理方式';
+  ['烤漆','鈑烤','換新'].forEach(pt=>{if(!procs[pt])return;const d=procs[pt];
+    const pr=d.price||0,la=d.labor||0,pa=d.paint||0,sum=pr+la+pa;
+    const el=document.createElement('div');el.className='proc-opt';
+    el.innerHTML='<div><div class="pname">'+PROC_LABEL[pt]+'</div><div class="pdetail">'+(pt==='換新'?'零件'+pr+' · ':'')+'拆裝'+(la||'-')+' · 塗裝'+(pa||'-')+'</div></div><div class="pamt">$'+sum.toLocaleString()+'</div>';
+    el.onclick=()=>{addItem({name:part+'（'+pt+'）',qty:1,price:pr,labor:la,paint:pa,type:'main'});closeModal();showSuggest(part,pt);};
+    ob.appendChild(el);});
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// 加入項目(帶階段標記)
+function addItem(it){it.addedAt=stage;it.cut=null;items.push(it);render();}
+
+function showSuggest(part,pt){
+  const rb=document.getElementById('ruleBox'),rc=document.getElementById('ruleChips');
+  let rules=[];const key=curModel+'|'+part+'|'+pt;
+  if(DATA.rule_items[key])rules=rules.concat(DATA.rule_items[key]);
+  (DATA.generic_rules||[]).forEach(g=>{if((g.cond==='換新'&&pt==='換新')||(g.cond==='門'&&part.includes('門'))||(g.cond==='車頂'&&part.includes('車頂'))||(g.cond==='鈑烤'&&pt==='鈑烤'))rules.push({name:g.name,price:g.price,labor:0,paint:0,qty:1});});
+  if(document.getElementById('ev').checked&&part.includes('前保')){rules.push({name:'牌照鉚釘×2(油電)',price:0,labor:0,paint:0,qty:1});rules.push({name:'雷達座×2(油電)',price:376,labor:0,paint:0,qty:1});}
+  if(rules.length){rc.innerHTML='';rules.forEach(r=>{const c=document.createElement('span');c.className='chip rule';
+    c.textContent=(r.force?'必估 ':'')+r.name+' $'+((r.price||0)+(r.labor||0)+(r.paint||0));
+    c.onclick=()=>addItem({name:r.name,qty:r.qty||1,price:r.price||0,labor:r.labor||0,paint:r.paint||0,type:'rule'});rc.appendChild(c);});
+    rb.style.display='block';}else rb.style.display='none';
+  const list=(DATA.addon_bm[curModel]&&DATA.addon_bm[curModel][part])?DATA.addon_bm[curModel][part]:[];const ab=document.getElementById('addonBox'),ac=document.getElementById('addonChips');
+  if(list.length){ac.innerHTML='';list.forEach(a=>{const c=document.createElement('span');c.className='chip'+(a.hot?' hot':'');
+    c.textContent=(a.hot?'★ ':'')+a.name+' $'+((a.price||0)+(a.labor||0)+(a.paint||0));
+    c.onclick=()=>addItem({name:a.name,qty:a.qty||1,price:a.price||0,labor:a.labor||0,paint:a.paint||0,type:'addon'});ac.appendChild(c);});
+    ab.style.display='block';}else ab.style.display='none';
+}
+function addCustom(){const n=document.getElementById('cName').value.trim();if(!n){alert('請填項目名稱');return;}
+  addItem({name:n,qty:1,price:+document.getElementById('cPrice').value||0,labor:+document.getElementById('cLabor').value||0,paint:+document.getElementById('cPaint').value||0,type:'custom'});
+  ['cName','cPrice','cLabor','cPaint'].forEach(id=>document.getElementById(id).value='');}
+
+function itemSum(it){return (it.price+it.labor+it.paint)*it.qty;}
+function itemFinal(it){return it.cut!=null?it.cut:itemSum(it);}
+
+function render(){
+  const tb=document.getElementById('rows');
+  if(!items.length){tb.innerHTML='<tr><td colspan="'+(stage>=3?10:9)+'" class="empty">請選車型後點選損傷部位</td></tr>';updateTotals();renderDiff();return;}
+  tb.innerHTML='';
+  items.forEach((it,idx)=>{
+    const tr=document.createElement('tr');
+    let cls=it.type==='addon'?'addon':(it.type==='rule'?'rule':'');
+    if(it.addedAt===2)cls='added';
+    if(it.cut!=null&&it.cut===0)cls+=' cut';
+    tr.className=cls;
+    let tag='';if(it.type==='rule')tag='<span class="tag r">規則</span>';if(it.addedAt===2)tag='<span class="tag a">追加</span>';
+    let html='';
+    if(stage===3&&cutMode){const ck=cutSel.includes(idx)?'checked':'';html+='<td class="chkcol"><input type="checkbox" '+ck+' onclick="toggleCut('+idx+')"></td>';}
+    html+='<td>'+(idx+1)+'</td><td class="name">'+tag+it.name+'</td><td>'+it.qty+'</td><td>'+(it.price||'-')+'</td><td>'+(it.labor||'-')+'</td><td>'+(it.paint||'-')+'</td>';
+    html+='<td>$'+itemSum(it).toLocaleString()+'</td>';
+    if(stage>=3){const cv=it.cut!=null?it.cut:'';html+='<td><input class="kvinput" type="number" value="'+cv+'" placeholder="'+itemSum(it)+'" onchange="setCut('+idx+',this.value)"></td>';}
+    if(!(stage===3&&cutMode))html+='<td><span class="del" onclick="remove('+idx+')">×</span></td>';
+    tr.innerHTML=html;tb.appendChild(tr);
+  });
+  updateTotals();renderDiff();
+}
+function setCut(i,v){items[i].cut=(v===''?null:+v);render();}
+function toggleCut(i){const p=cutSel.indexOf(i);if(p<0)cutSel.push(i);else cutSel.splice(p,1);}
+function startCutMerge(){cutMode=!cutMode;cutSel=[];document.getElementById('cutBtn').textContent=cutMode?'取消合併':'合併砍價';document.getElementById('mergeBar').style.display=cutMode?'flex':'none';render();}
+function applyMerge(){const v=+document.getElementById('mergeVal').value;if(!cutSel.length){alert('請勾選要合併的項目');return;}
+  // 合併:第一項記合併核定價,其餘記0
+  cutSel.sort((a,b)=>a-b);cutSel.forEach((idx,k)=>{items[idx].cut=(k===0?v:0);items[idx].mergeNote=(k===0?'(合併核定'+cutSel.length+'項)':'(併入上項)');});
+  cutMode=false;document.getElementById('cutBtn').textContent='合併砍價';document.getElementById('mergeBar').style.display='none';cutSel=[];render();}
+function remove(i){items.splice(i,1);render();}
+
+function updateTotals(){
+  let parts=0,labor=0;items.forEach(it=>{parts+=it.price*it.qty;labor+=(it.labor+it.paint)*it.qty;});
+  const pre=parts+labor,tax=Math.round(pre*0.05);
+  document.getElementById('tParts').textContent='$'+parts.toLocaleString();
+  document.getElementById('tLabor').textContent='$'+labor.toLocaleString();
+  document.getElementById('tPre').textContent='$'+pre.toLocaleString();
+  document.getElementById('tTax').textContent='$'+tax.toLocaleString();
+  document.getElementById('tGrand').textContent='$'+(pre+tax).toLocaleString();
+}
+// 內部差異摘要(不列印)
+function renderDiff(){
+  const box=document.getElementById('diff');
+  if(stage<3){box.style.display='none';return;}
+  const v1=items.filter(it=>it.addedAt===1).reduce((s,it)=>s+itemSum(it),0);
+  const add=items.filter(it=>it.addedAt===2).reduce((s,it)=>s+itemSum(it),0);
+  const estTotal=items.reduce((s,it)=>s+itemSum(it),0);
+  const approved=items.reduce((s,it)=>s+itemFinal(it),0);
+  const diff=estTotal-approved;
+  box.innerHTML='<h4>內部差異摘要（僅供內部記錄，不列印給客戶）</h4><table>'+
+    '<tr><td class="k">初估金額 (V1)</td><td>$'+v1.toLocaleString()+'</td></tr>'+
+    '<tr><td class="k">追加金額 (V2)</td><td>$'+add.toLocaleString()+'</td></tr>'+
+    '<tr><td class="k">我方估價合計</td><td>$'+estTotal.toLocaleString()+'</td></tr>'+
+    '<tr><td class="k">保險核定合計</td><td>$'+approved.toLocaleString()+'</td></tr>'+
+    '<tr class="final"><td class="k">差額（砍價，歸屬個案處理）</td><td>$'+diff.toLocaleString()+'</td></tr>'+
+    '</table>';
+  box.style.display='block';
+}
+function nextStage(){if(stage<4){stage++;refresh();}}
+function lockCase(){if(!confirm('確定結案並鎖定？鎖定後僅能檢視與列印。'))return;locked=true;stage=4;refresh();}
+function clearAll(){if(!confirm('清除全部重填？'))return;items=[];stage=1;locked=false;cutMode=false;
+  document.getElementById('ruleBox').style.display='none';document.getElementById('addonBox').style.display='none';refresh();}
+
+function refresh(){
+  renderStages();
+  // 階段橫幅
+  const bn=document.getElementById('banner');
+  if(stage===1){bn.className='banner hide';}
+  else{bn.className='banner v'+stage;bn.textContent={2:'追加階段：拆裝後新增項目會標示「追加」',3:'保險核定階段：於右欄填核定價，或用「合併砍價」處理組合價',4:'已結案：列印僅輸出結案明細與總額'}[stage];}
+  // 編輯區只在V1/V2顯示
+  const editable=(stage===1||stage===2)&&!locked;
+  document.getElementById('editArea').style.display=editable?'block':'none';
+  document.getElementById('addCustom').style.display=editable?'flex':'none';
+  // 核定工具列
+  document.getElementById('cutBar').style.display=(stage===3)?'flex':'none';
+  // 動作鈕
+  document.getElementById('btnNext').style.display=(stage<4&&!locked)?'inline-block':'none';
+  document.getElementById('btnNext').textContent=stage===3?'進入結案 →':'下一階段 →';
+  document.getElementById('btnLock').style.display=(stage===4&&!locked)?'inline-block':'none';
+  render();
+}
+refresh();
+
+// 列印前把輸入欄位值同步到正式版面
+function syncPrint(){
+  const g=id=>(document.getElementById(id)?.value||'');
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  set('ph_owner',g('owner')||'　');
+  set('ph_plate',g('plate')||'　');
+  set('ph_phone',g('phone')||'　');
+  set('ph_model',(curModel||'')+(g('color')?'/'+g('color'):''));
+  set('ph_insurer',g('insurer')||'　');
+  set('ph_agent',g('agent')||'　');
+  set('ph_agentph',g('agentph')||'　');
+  set('ph_caseno',g('caseno')||'　');
+  set('ph_days',g('days')||'　');
+  set('ph_remark',g('hremark')||'　');
+  set('ph_color',g('color')||'　');
+  set('ph_agent2',g('agent2')||'　');
+  set('ph_agentph2',g('agentph2')||'　');
+  set('ph_caseno2',g('caseno2')||'　');
+  set('ph_datetime',g('datetime')||'　');
+  const pay=document.querySelector('input[name="paytype"]:checked');
+  set('ph_pay',pay?(pay.value==='ins'?'■承修　□自費':'□承修　■自費'):'□承修　□自費');
+  // 文件清單勾選
+  const docs=['理賠申請書','賠款同意書','估價單','行照正面影本','駕照正面影本','保險卡影本','和解書','發票','憲警報案資料','損壞照片','磨土照片','關係證明','其他'];
+  let dhtml='';docs.forEach((d,i)=>{const ck=document.getElementById('doc'+i)?.checked;dhtml+=(ck?'■':'□')+(i+1)+d+'　';});
+  const _d=document.getElementById('ph_docs');if(_d)_d.innerHTML=dhtml;
+}
+window.addEventListener('beforeprint',syncPrint);
+
+const DOCS=['理賠申請書','賠款同意書','估價單','行照正面影本','駕照正面影本','保險卡影本','和解書','發票','憲警報案資料','損壞照片','磨土照片','關係證明','其他'];
+function initDocs(){const g=document.getElementById('docGrid');DOCS.forEach((d,i)=>{const l=document.createElement('label');l.innerHTML='<input type="checkbox" id="doc'+i+'"> '+(i+1)+d;g.appendChild(l);});}
+initDocs();
+
+
+// ===== 暫存區 (localStorage) =====
+const STORE_KEY='mj_banpen_estimates';
+function loadStore(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){return [];}}
+function saveStore(arr){localStorage.setItem(STORE_KEY,JSON.stringify(arr));}
+function curStateSnapshot(){
+  const g=id=>(document.getElementById(id)?.value||'');
+  return {owner:g('owner'),plate:g('plate'),phone:g('phone'),color:g('color'),ev:document.getElementById('ev')?.checked||false,
+    insurer:g('insurer'),days:g('days'),hremark:g('hremark'),datetime:g('datetime'),
+    agent:g('agent'),agentph:g('agentph'),caseno:g('caseno'),agent2:g('agent2'),agentph2:g('agentph2'),caseno2:g('caseno2'),
+    docs:[...Array(13).keys()].map(i=>document.getElementById('doc'+i)?.checked||false),
+    model:curModel,items:JSON.parse(JSON.stringify(items)),stage:stage,locked:locked};
+}
+function restoreState(s){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  set('owner',s.owner);set('plate',s.plate);set('phone',s.phone);set('color',s.color);
+  set('insurer',s.insurer);set('days',s.days);set('hremark',s.hremark);set('datetime',s.datetime);
+  set('agent',s.agent);set('agentph',s.agentph);set('caseno',s.caseno);
+  set('agent2',s.agent2);set('agentph2',s.agentph2);set('caseno2',s.caseno2);
+  if(document.getElementById('ev'))document.getElementById('ev').checked=s.ev;
+  (s.docs||[]).forEach((v,i)=>{const el=document.getElementById('doc'+i);if(el)el.checked=v;});
+  curModel=s.model;items=s.items||[];stage=s.stage||1;locked=s.locked||false;
+  initModels();renderParts();refresh();
+}
+let editingId=null;
+function saveCurrent(){
+  const plate=document.getElementById('plate').value.trim();
+  if(!plate){alert('請先填車號才能暫存');return;}
+  if(!items.length){alert('尚無估價項目');return;}
+  let arr=loadStore();
+  const grand=items.reduce((s,it)=>s+(it.price+it.labor+it.paint)*it.qty,0);
+  const tax=Math.round(grand*0.05);
+  const rec={id:editingId||('E'+Date.now()),plate:plate,owner:document.getElementById('owner').value,
+    model:curModel,grand:grand+tax,stage:stage,locked:locked,updated:new Date().toLocaleString('zh-TW'),
+    state:curStateSnapshot()};
+  if(editingId){const i=arr.findIndex(x=>x.id===editingId);if(i>=0)arr[i]=rec;else arr.push(rec);}
+  else arr.push(rec);
+  editingId=rec.id;saveStore(arr);renderStoreList();
+  alert('已暫存：'+plate+'（'+STAGE_NAME[stage]+'）');
+}
+function renderStoreList(){
+  const arr=loadStore();const tb=document.getElementById('storeRows');
+  if(!arr.length){tb.innerHTML='<tr><td colspan="7" class="empty">尚無暫存估價單</td></tr>';return;}
+  tb.innerHTML='';
+  arr.slice().reverse().forEach(r=>{
+    const tr=document.createElement('tr');
+    const stName={1:'初估',2:'追加中',3:'核定中',4:'已結案'}[r.stage]||'初估';
+    tr.innerHTML='<td>'+r.plate+'</td><td>'+(r.owner||'')+'</td><td>'+(r.model||'')+'</td>'+
+      '<td>$'+r.grand.toLocaleString()+'</td><td>'+(r.locked?'🔒':'')+stName+'</td><td style="font-size:11px">'+r.updated+'</td>'+
+      '<td><button class="mini" onclick="openRec(\''+r.id+'\')">開啟</button> '+
+      '<button class="mini" onclick="exportRec(\''+r.id+'\')">匯出Excel</button> '+
+      '<button class="mini del2" onclick="delRec(\''+r.id+'\')">刪</button></td>';
+    tb.appendChild(tr);
+  });
+}
+function openRec(id){const arr=loadStore();const r=arr.find(x=>x.id===id);if(!r)return;editingId=id;restoreState(r.state);document.getElementById('storeList').scrollIntoView();alert('已載入 '+r.plate+'，可繼續追加或結案');}
+function delRec(id){if(!confirm('刪除這筆暫存？'))return;saveStore(loadStore().filter(x=>x.id!==id));renderStoreList();if(editingId===id)editingId=null;}
+function toggleStoreList(){const el=document.getElementById('storeList');el.style.display=el.style.display==='none'?'block':'none';renderStoreList();}
+function newEstimate(){editingId=null;clearAll();}
+
+// ===== 匯出 Excel (SheetJS) =====
+function buildRows(st){
+  const it=st?st.items:items;
+  const rows=[['銘勁汽車 修護估價單'],[]];
+  const g=k=>st?(st[k]||''):(document.getElementById(k)?.value||'');
+  rows.push(['車主',g('owner'),'車號',g('plate'),'車型',(st?st.model:curModel)||'']);
+  rows.push(['電話',g('phone'),'車色',g('color'),'保險公司',g('insurer')]);
+  rows.push(['估價日期',g('datetime'),'維修天數',g('days'),'備註',g('hremark')]);
+  rows.push(['經辦(本)',g('agent'),'電話',g('agentph'),'案號',g('caseno')]);
+  rows.push(['經辦(財)',g('agent2'),'電話',g('agentph2'),'案號',g('caseno2')]);
+  rows.push([]);
+  rows.push(['#','項目','數量','零件單價','拆裝工資','塗裝工資','保險核定','小計']);
+  let parts=0,labor=0;
+  it.forEach((x,i)=>{const sub=(x.price+x.labor+x.paint)*x.qty;parts+=x.price*x.qty;labor+=(x.labor+x.paint)*x.qty;
+    rows.push([i+1,x.name,x.qty,x.price||'',x.labor||'',x.paint||'',(x.cut!=null?x.cut:''),sub]);});
+  const pre=parts+labor,tax=Math.round(pre*0.05);
+  rows.push([]);
+  rows.push(['','','','','','零件合計',parts]);
+  rows.push(['','','','','','工資合計',labor]);
+  rows.push(['','','','','','稅前總計',pre]);
+  rows.push(['','','','','','稅金5%',tax]);
+  rows.push(['','','','','','含稅總計',pre+tax]);
+  return rows;
+}
+function downloadXLSX(rows,fname){
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:5},{wch:28},{wch:8},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'估價單');
+  XLSX.writeFile(wb,fname);
+}
+function exportCurrent(){
+  const plate=document.getElementById('plate').value.trim()||'估價單';
+  if(!items.length){alert('尚無估價項目');return;}
+  downloadXLSX(buildRows(null),'估價單_'+plate+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+function exportRec(id){const r=loadStore().find(x=>x.id===id);if(!r)return;downloadXLSX(buildRows(r.state),'估價單_'+r.plate+'.xlsx');}
+
+initModels();
+renderStoreList();
+
+// 自動帶當下日期時間(民國年),可手動改
+(function(){
+  const n=new Date();
+  const roc=n.getFullYear()-1911;
+  const mm=n.getMonth()+1, dd=n.getDate();
+  const hh=String(n.getHours()).padStart(2,'0'), mi=String(n.getMinutes()).padStart(2,'0');
+  const el=document.getElementById('datetime');
+  if(el)el.value=`${roc}年${mm}月${dd}日 ${hh}:${mi}`;
+})();
+</script></body></html>
